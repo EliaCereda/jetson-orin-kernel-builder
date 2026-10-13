@@ -6,7 +6,7 @@ This script helps users analyze **kernel module flags**, their dependencies, and
 ## Requirements and Dependencies
 To successfully run this script, ensure the following:
 - **Bash shell** (pre-installed on most Linux systems)
-- **Kernel source code** located at `/usr/src/kernel/kernel-jammy-src` or specified via the `KERNEL_URI` environment variable
+- **Kernel source code** located under `/usr/src/kernel/` (auto-detected) or specified via the `KERNEL_URI` environment variable
 - **A valid `.config` file** in the kernel source directory
 
 ## Usage
@@ -45,11 +45,11 @@ To display the help message:
    - If a module flag is provided, the script looks up its details.
 
 2. **Ensure Kernel Source Directory Exists**
-   - Sets the default kernel source path to /usr/src/kernel/kernel-jammy-src
+   - Auto-detects the kernel source path under /usr/src/kernel/ (kernel-jammy-src on JetPack 6.X, kernel-noble on JetPack 7.X)
    - The script sets the path to `KERNEL_URI` if the environment variable is set.
    - If the kernel source files cannot be found, it exits with an error:
      ```
-     Error: Kernel source directory /usr/src/kernel/kernel-jammy-src not found
+     Error: Kernel source directory /usr/src/kernel not found
      ```
 
 4. **Search for Kernel Configurations**

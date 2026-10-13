@@ -2,13 +2,13 @@
 
 ## Overview
 
-This Bash script automates the process of downloading, extracting, and configuring the kernel source for NVIDIA Jetson devices running Linux for Tegra (L4T) version 36.X on Ubuntu 22.04 Jammy. It retrieves the kernel source, out-of-tree modules, and display driver source from NVIDIA's developer site, extracts them to `/usr/src/`, and configures them with the current kernel settings. The script also manages existing kernel sources based on user input or command-line flags, ensures necessary dependencies are installed, and logs all actions to a timestamped file for reference.
+This Bash script automates the process of downloading, extracting, and configuring the kernel source for NVIDIA Jetson devices running Linux for Tegra (L4T) version 36.X (Ubuntu 22.04 Jammy) or 39.X (Ubuntu 24.04 Noble). It retrieves the kernel source, out-of-tree modules, and display driver source from NVIDIA's developer site, extracts them to `/usr/src/`, and configures them with the current kernel settings. The script also manages existing kernel sources based on user input or command-line flags, ensures necessary dependencies are installed, and logs all actions to a timestamped file for reference.
 
 ## Requirements
 
 To run this script successfully, the following are required:
 
-- **Operating System**: A Jetson device running Ubuntu 22.04 Jammy with Linux for Tegra (L4T) version 36.X.
+- **Operating System**: A Jetson device running Ubuntu 22.04 Jammy with L4T 36.X (JetPack 6.X), or Ubuntu 24.04 Noble with L4T 39.X (JetPack 7.X).
 - **Internet Access**: Required to download the kernel source files from NVIDIA's developer site.
 - **Sudo Privileges**: Necessary for writing to `/usr/src/`, extracting files, and installing packages.
 - **Utilities**: 

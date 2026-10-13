@@ -20,8 +20,15 @@
 # Copyright (c) 2016-25 JetsonHacks
 # MIT License
 
-# Default kernel source path, can be overridden by environment variable
-KERNEL_URI="${KERNEL_URI:-/usr/src/kernel/kernel-jammy-src}"
+# Shared helpers for locating the kernel source tree
+source "$(dirname "$(readlink -f "$0")")/kernel_paths.sh"
+
+# Kernel source path, can be overridden by environment variable. When unset, the
+# source tree is detected under /usr/src (the directory name varies by release:
+# kernel-jammy-src on JetPack 6.X, kernel-noble on JetPack 7.X).
+if [ -z "$KERNEL_URI" ]; then
+    KERNEL_URI=$(resolve_kernel_src /usr/src) || KERNEL_URI="/usr/src/kernel"
+fi
 
 # Display usage information
 usage() {

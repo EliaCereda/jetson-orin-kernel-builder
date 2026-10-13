@@ -3,31 +3,37 @@
 # This script enables users to configure the Linux kernel using 'make menuconfig', 
 # a text-based interface for kernel configuration. It verifies the presence of 
 # the required ncurses library and prompts the user to install it if missing.
-# Once dependencies are met, it navigates to the specified kernel source directory 
-# (default: /usr/src/kernel/kernel-jammy-src) and launches 'make menuconfig'.
+# Once dependencies are met, it locates the kernel source directory under the given
+# parent (default: /usr/src) and launches 'make menuconfig'. The source directory name
+# varies by release (kernel-jammy-src on JetPack 6.X, kernel-noble on JetPack 7.X) and
+# is detected automatically.
 #
 # Usage:
 #   ./edit_config_cli.sh [[-d directory ] | [-h]]
 #
 # Options:
-#   -d | --directory  Specify the directory containing the kernel source 
-#                     (default: /usr/src/kernel/kernel-jammy-src)
+#   -d | --directory  Specify the parent directory containing the kernel source
+#                     (default: /usr/src)
 #   -h | --help       Display this help message
 #
 # Example:
 #   ./edit_config_cli.sh                   # Use default kernel source directory
-#   ./edit_config_cli.sh -d /custom/kernel/src # Specify a custom kernel source path
+#   ./edit_config_cli.sh -d /custom/src    # Specify a custom kernel source parent
 #
 # Notes:
-# - If 'libncurses5-dev' is missing, the script prompts the user to install it.
+# - If the ncurses development package is missing, the script prompts the user to
+#   install it ('libncurses5-dev' on Ubuntu 22.04, 'libncurses-dev' on Ubuntu 24.04).
 # - If the kernel source directory does not exist, the script exits with an error.
 # - Requires sudo permissions to modify kernel configurations.
 #
 # Copyright (c) 2016-25 JetsonHacks
 # MIT License
 
+# Shared helpers for locating the kernel source tree
+source "$(dirname "$(readlink -f "$0")")/kernel_paths.sh"
+
 SOURCE_TARGET="/usr/src"
-KERNEL_RELEASE=$(uname -r | cut -d. -f1-2) 
+KERNEL_RELEASE=$(uname -r | cut -d. -f1-2)
 
 function usage {
     echo "usage: ./editConfig.sh [[-d directory ] | [-h]]"
@@ -55,17 +61,19 @@ if [[ "${SOURCE_TARGET: -1}" != "/" ]]; then
    SOURCE_TARGET="${SOURCE_TARGET}/"
 fi
 
-# Check for libncurses5-dev
-if ! dpkg -s libncurses5-dev &> /dev/null; then
-    echo "[WARNING] 'libncurses5-dev' is not installed. It is required for 'menuconfig'."
+# Check for the ncurses development package. Ubuntu 22.04 (Jammy) ships
+# libncurses5-dev; Ubuntu 24.04 (Noble) replaced it with libncurses-dev.
+NCURSES_PKG=$(ncurses_dev_package)
+if ! dpkg -s "$NCURSES_PKG" &> /dev/null; then
+    echo "[WARNING] '$NCURSES_PKG' is not installed. It is required for 'menuconfig'."
     read -rp "Would you like to install it now? (Y/N): " INSTALL_CHOICE
     case "$INSTALL_CHOICE" in
         [Yy]* )
-            echo "Installing 'libncurses5-dev'..."
-            sudo apt-get update && sudo apt-get install -y libncurses5-dev
+            echo "Installing '$NCURSES_PKG'..."
+            sudo apt-get update && sudo apt-get install -y "$NCURSES_PKG"
             ;;
         [Nn]* )
-            echo "[ERROR] 'libncurses5-dev' is required. Exiting."
+            echo "[ERROR] '$NCURSES_PKG' is required. Exiting."
             exit 1
             ;;
         * )
@@ -75,19 +83,19 @@ if ! dpkg -s libncurses5-dev &> /dev/null; then
     esac
 fi
 
-# Verify that kernel source exists
-PROPOSED_SRC_PATH="${SOURCE_TARGET}kernel/kernel-jammy-src"
-echo "Proposed source path: ${PROPOSED_SRC_PATH}"
-
-if [[ ! -d "$PROPOSED_SRC_PATH" ]]; then
+# Locate the kernel source directory (name varies by release)
+if ! PROPOSED_SRC_PATH=$(resolve_kernel_src "$SOURCE_TARGET"); then
   tput setaf 1
   echo "==== Cannot find kernel source! =============== "
   tput sgr0
-  echo "The kernel source does not appear to be installed at: "
-  echo "   ${PROPOSED_SRC_PATH}"
+  echo "The kernel source does not appear to be installed under: "
+  echo "   ${SOURCE_TARGET}kernel/"
+  echo "Expected one of: ${KNOWN_KERNEL_SRC_DIRS[*]}"
   echo "Unable to edit kernel configuration."
   exit 1
 fi
+
+echo "Kernel source path: ${PROPOSED_SRC_PATH}"
 
 # Enter kernel source directory and launch menuconfig
 cd "$PROPOSED_SRC_PATH"

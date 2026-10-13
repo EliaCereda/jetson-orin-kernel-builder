@@ -1,8 +1,10 @@
 #!/bin/bash
 # Linux Kernel Build Script for NVIDIA Jetson Developer Kit
 # This script automates the process of building the Linux kernel for the NVIDIA Jetson Developer Kit.
-# It verifies the kernel source directory, removes old kernel images, compiles the kernel using 
+# It locates the kernel source directory, removes old kernel images, compiles the kernel using
 # optimal CPU usage, and logs the build process. If the build fails, it retries with a single-threaded build.
+# The kernel source directory name varies by release (kernel-jammy-src on JetPack 6.X,
+# kernel-noble on JetPack 7.X) and is detected automatically.
 #
 # Usage:
 #   ./make_kernel.sh [[-d directory ] | [-h]]
@@ -19,6 +21,9 @@
 #
 # Copyright (c) 2016-25 JetsonHacks
 # MIT License
+
+# Shared helpers for locating the kernel source tree
+source "$(dirname "$(readlink -f "$0")")/kernel_paths.sh"
 
 SOURCE_TARGET="/usr/src"
 
@@ -48,18 +53,18 @@ done
 # Ensure SOURCE_TARGET ends with a slash
 [[ "${SOURCE_TARGET}" != */ ]] && SOURCE_TARGET+="/"
 
-# Check for kernel source directory
-MAKE_DIRECTORY="${SOURCE_TARGET}kernel/kernel-jammy-src"
-echo "Proposed source path: $MAKE_DIRECTORY"
-
-if [ ! -d "$MAKE_DIRECTORY" ]; then
+# Locate the kernel source directory (name varies by release)
+if ! MAKE_DIRECTORY=$(resolve_kernel_src "$SOURCE_TARGET"); then
     tput setaf 1
     echo "==== Cannot find kernel source! ===="
     tput sgr0
-    echo "Expected at: $MAKE_DIRECTORY"
+    echo "Searched under: ${SOURCE_TARGET}kernel/"
+    echo "Expected one of: ${KNOWN_KERNEL_SRC_DIRS[*]}"
     echo "Please install the kernel source and retry."
     exit 1
 fi
+
+echo "Kernel source path: $MAKE_DIRECTORY"
 
 # Ensure logs directory exists with appropriate permissions
 LOGS_DIR="$(pwd)/logs"

@@ -6,13 +6,13 @@ This script allows users to edit the kernel configuration for an **NVIDIA Jetson
 ## Requirements and Dependencies
 To run this script, you must have the following installed on your system:
 - **Bash shell** (pre-installed on most Linux systems)
-- **`libncurses5-dev`** package (required for `menuconfig`)
+- **ncurses development package** (required for `menuconfig`): `libncurses5-dev` on Ubuntu 22.04, `libncurses-dev` on Ubuntu 24.04
 - **Kernel source code** located in the `/usr/src/` directory or a user-specified path
 
 ### Installation of Dependencies
-If `libncurses5-dev` is not installed, the script will prompt the user to install it using:
+If the ncurses development package is not installed, the script will prompt the user to install it (selecting the correct package name for your Ubuntu release), for example:
 ```bash
-sudo apt-get update && sudo apt-get install -y libncurses5-dev
+sudo apt-get update && sudo apt-get install -y libncurses-dev
 ```
 
 ## Usage
@@ -47,14 +47,14 @@ To display the help message:
 2. **Ensure Directory Path Format**  
    - The script ensures the provided directory path ends with a trailing slash (`/`).
 
-3. **Check for `libncurses5-dev` Dependency**  
-   - The script checks if `libncurses5-dev` is installed.
+3. **Check for the ncurses Dependency**  
+   - The script checks if the ncurses development package for your Ubuntu release is installed.
    - If missing, the user is prompted to install it. If declined, the script exits.
 
 4. **Verify Kernel Source Directory**  
-   - The script constructs the expected kernel source path, for example:  
+   - The script detects the kernel source path under `/usr/src/kernel/`, for example:  
      ```
-     /usr/src/kernel/kernel-jammy-src
+     /usr/src/kernel/kernel-noble      # JetPack 7.X (kernel-jammy-src on JetPack 6.X)
      ```
    - If the directory does not exist, an error message is displayed, and the script exits.
 
@@ -67,6 +67,6 @@ To display the help message:
 
 ## Error Handling
 - If an invalid option is provided, the script displays a usage message and exits.
-- If `libncurses5-dev` is missing and the user declines installation, the script exits with an error.
+- If the ncurses development package is missing and the user declines installation, the script exits with an error.
 - If the kernel source directory does not exist, an error message is shown, and the script exits.
 

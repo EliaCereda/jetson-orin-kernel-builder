@@ -21,6 +21,9 @@
 # Copyright (c) 2016-25 JetsonHacks
 # MIT License
 
+# Shared helpers for locating the kernel source tree
+source "$(dirname "$(readlink -f "$0")")/kernel_paths.sh"
+
 # Color functions for consistent output
 red=$(tput setaf 1)
 reset=$(tput sgr0)
@@ -63,14 +66,13 @@ done
 # Ensure SOURCE_TARGET ends with a slash
 [[ "${SOURCE_TARGET}" != */ ]] && SOURCE_TARGET+="/"
 
-# Set kernel source directory
-KERNEL_SRC="${SOURCE_TARGET}kernel/kernel-jammy-src"
-
-# Check for kernel source directory
-if [ ! -d "$KERNEL_SRC" ]; then
-    echo_error "Kernel source not found at $KERNEL_SRC"
+# Locate the kernel source directory (name varies by release)
+if ! KERNEL_SRC=$(resolve_kernel_src "$SOURCE_TARGET"); then
+    echo_error "Kernel source not found under ${SOURCE_TARGET}kernel/ (expected one of: ${KNOWN_KERNEL_SRC_DIRS[*]})"
     exit 1
 fi
+
+echo_info "Kernel source path: $KERNEL_SRC"
 
 # Check for .config
 if [ ! -f "$KERNEL_SRC/.config" ]; then

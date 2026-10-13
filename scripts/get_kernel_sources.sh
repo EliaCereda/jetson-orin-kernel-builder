@@ -1,8 +1,9 @@
 #!/bin/bash
 # Kernel Source Retrieval and Setup Script for NVIDIA Jetson Developer Kit
-# This script downloads, extracts, and configures the kernel source for Jetson Linux 36.X on 
-# Ubuntu 22.04 Jammy. It ensures required dependencies are installed, provides options for 
-# backing up or replacing existing sources, and sets up the kernel source for compilation.
+# This script downloads, extracts, and configures the kernel source for Jetson Linux 36.X
+# (JetPack 6.X, Ubuntu 22.04 Jammy) and Jetson Linux 39.X (JetPack 7.X, Ubuntu 24.04 Noble).
+# It ensures required dependencies are installed, provides options for backing up or
+# replacing existing sources, and sets up the kernel source for compilation.
 # Logs the entire process for reference.
 #
 # Usage:
@@ -23,6 +24,10 @@
 # MIT License
 
 set -e  # Exit on error
+
+# Shared helpers for locating the kernel source tree
+source "$(dirname "$(readlink -f "$0")")/kernel_paths.sh"
+
 # Set the log directory to ./logs relative to the current working directory
 LOG_DIR="$PWD/logs"
 # Generate a timestamp for the log file name
@@ -112,32 +117,55 @@ log "Downloading kernel sources from: $SOURCE_BASE/$SOURCE_FILE"
 wget -N "$SOURCE_BASE/$SOURCE_FILE"
 
 log "Extracting sources..."
-# Extract kernel source and related components
-tar -xvf "$SOURCE_FILE" Linux_for_Tegra/source/kernel_src.tbz2 \
-                        Linux_for_Tegra/source/kernel_oot_modules_src.tbz2 \
-                        Linux_for_Tegra/source/nvidia_kernel_display_driver_source.tbz2 --strip-components=2
+# Components to pull out of the release tarball. The unified GPU display driver is
+# only shipped starting with Jetson Linux 39.X (JetPack 7.X), so it is optional.
+COMPONENTS=(kernel_src.tbz2 kernel_oot_modules_src.tbz2 nvidia_kernel_display_driver_source.tbz2)
+OPTIONAL_COMPONENTS=(nvidia_unified_gpu_display_driver_source.tbz2)
+
+TAR_MEMBERS=()
+for component in "${COMPONENTS[@]}"; do
+  TAR_MEMBERS+=("Linux_for_Tegra/source/$component")
+done
+
+# Only request optional components that this release actually ships
+for component in "${OPTIONAL_COMPONENTS[@]}"; do
+  if tar -tf "$SOURCE_FILE" "Linux_for_Tegra/source/$component" &> /dev/null; then
+    log "Release includes optional component: $component"
+    COMPONENTS+=("$component")
+    TAR_MEMBERS+=("Linux_for_Tegra/source/$component")
+  fi
+done
+
+tar -xvf "$SOURCE_FILE" "${TAR_MEMBERS[@]}" --strip-components=2
 
 # Extract each component separately into /usr/src/
-log "Extracting kernel source..."
-sudo tar -xvf kernel_src.tbz2 -C "$KERNEL_SRC_DIR"
-log "Extracting NVIDIA out-of-tree kernel modules..."
-sudo tar -xvf kernel_oot_modules_src.tbz2 -C "$KERNEL_SRC_DIR"
-log "Extracting NVIDIA display driver source..."
-sudo tar -xvf nvidia_kernel_display_driver_source.tbz2 -C "$KERNEL_SRC_DIR"
+for component in "${COMPONENTS[@]}"; do
+  log "Extracting $component..."
+  sudo tar -xvf "$component" -C "$KERNEL_SRC_DIR"
+done
 
 # Cleanup tarballs
-rm kernel_src.tbz2 kernel_oot_modules_src.tbz2 nvidia_kernel_display_driver_source.tbz2 "$SOURCE_FILE"
+rm "${COMPONENTS[@]}" "$SOURCE_FILE"
 
 log "Kernel sources and modules extracted to $KERNEL_SRC_DIR"
 
+# Locate the extracted kernel source tree. The directory name follows the Ubuntu
+# codename of the release (kernel-jammy-src on 36.X, kernel-noble on 39.X).
+if ! KERNEL_SOURCE_PATH=$(resolve_kernel_src "$KERNEL_SRC_DIR"); then
+  log "[ERROR] Could not locate the kernel source tree under ${KERNEL_SRC_DIR}kernel/"
+  log "Expected one of: ${KNOWN_KERNEL_SRC_DIRS[*]}"
+  exit 1
+fi
+log "Using kernel source tree: $KERNEL_SOURCE_PATH"
+
 # Copy the current kernel config (requires sudo)
 log "Copying current kernel config..."
-sudo zcat /proc/config.gz | sudo tee "${KERNEL_SRC_DIR}kernel/kernel-jammy-src/.config" > /dev/null
+sudo zcat /proc/config.gz | sudo tee "${KERNEL_SOURCE_PATH}/.config" > /dev/null
 
 # Set the local version for the kernel build process
 KERNEL_VERSION=$(uname -r)
 LOCAL_VERSION="-$(echo ${KERNEL_VERSION} | cut -d "-" -f2-)"
-cd ${KERNEL_SRC_DIR}kernel/kernel-jammy-src/
+cd "${KERNEL_SOURCE_PATH}"
 sudo cp .config .config.orig
 sudo bash scripts/config --file .config --set-str LOCALVERSION $LOCAL_VERSION
 

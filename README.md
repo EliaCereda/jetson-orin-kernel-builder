@@ -1,7 +1,13 @@
 # jetson-orin-kernel-builder
 Tools to build the Linux kernel and modules on board the **Jetson AGX Orin, Orin Nano, or Orin NX**. This tool is designed for **beginning to intermediate users**. Please **read this entire document before proceeding**.
 
-This is for **JetPack 6**. [Supporting video.](https://youtu.be/7P6I2jeJNYo) on YouTube.
+This is for **JetPack 6 and JetPack 7**. [Supporting video.](https://youtu.be/7P6I2jeJNYo) on YouTube.
+
+> **Note on kernel source directories:** NVIDIA names the kernel source tree after the
+> Ubuntu codename of the release. JetPack 6.X (Jetson Linux 36.X, Ubuntu 22.04) uses
+> `/usr/src/kernel/kernel-jammy-src`, while JetPack 7.X (Jetson Linux 39.X, Ubuntu 24.04)
+> uses `/usr/src/kernel/kernel-noble`. These scripts detect the correct directory
+> automatically, so the same commands work on both releases.
 
 ## Overview
 This repository contains **convenience scripts** to simplify the process of:
@@ -10,13 +16,13 @@ This repository contains **convenience scripts** to simplify the process of:
 - **Building the Kernel Image**
 - **Building Kernel Modules (in-tree (tested) and out of tree (untested) )**
 
-These scripts help automate common tasks involved in kernel modification and module development on **Jetson Linux 36.X**.
+These scripts help automate common tasks involved in kernel modification and module development on **Jetson Linux 36.X and 39.X**.
 
 ---
 
 ## Prerequisites
 Before using these scripts, ensure:
-- You have a **Jetson Orin** device running **JetPack 6.X**.
+- You have a **Jetson Orin** device running **JetPack 6.X or JetPack 7.X**.
 - Your system is **up to date**:
   ```bash
   sudo apt update && sudo apt upgrade -y
@@ -28,7 +34,7 @@ Before using these scripts, ensure:
 
 ### **1. Get Kernel and Module Sources**
 #### [`get_kernel_sources.sh`](scripts/get_kernel_sources.sh)
-**Downloads, extracts, and configures** the kernel source for **Jetson Linux 36.X**.
+**Downloads, extracts, and configures** the kernel source for **Jetson Linux 36.X and 39.X**.
 - Automatically detects **L4T version**.
 - Supports **backing up or replacing** existing kernel sources.
 - Extracts **kernel, out-of-tree modules, and display driver sources**.
@@ -54,13 +60,13 @@ Usage:
 ```bash
 ./scripts/edit_config_gui.sh [kernel_source_directory]
 ```
-_Defaults to `/usr/src/kernel/kernel-jammy-src`._
+_Defaults to the kernel source auto-detected under `/usr/src/kernel/` (`kernel-jammy-src` on JetPack 6.X, `kernel-noble` on JetPack 7.X)._
 
 ---
 
 #### CLI Mode: [`edit_config_cli.sh`](scripts/edit_config_cli.sh)
 Launches `make menuconfig`, a **text-based interface** for kernel configuration.
-- Checks for **ncurses** dependency (`libncurses5-dev`).
+- Checks for **ncurses** dependency (`libncurses5-dev` on Ubuntu 22.04, `libncurses-dev` on Ubuntu 24.04).
 - Runs 'make menuconfig' with appropriate permissions
 
 Usage:
@@ -142,15 +148,24 @@ Features:
 - Supports searching for related configuration strings across **kernel sources**.
 
 Environment Variables:
-- `KERNEL_URI` : Specifies the kernel source directory (default: `/usr/src/kernel/kernel-jammy-src`).
+- `KERNEL_URI` : Specifies the kernel source directory (default: auto-detected under `/usr/src/kernel/`).
 
 ### Pre-built module
 The prebuilt directory contains pre-compiled linux kernel modules, mostly sourced from the mainline Linux kernel. They are offered as a convenience binary for systems where this in-tree module is not included or enable by default.
+
+**Note:** The pre-built modules currently provided are for **JetPack 6.2 and 6.2.1** only (vermagic `5.15.148-tegra`). Kernel modules must match the running kernel exactly, so these will **not** load on JetPack 7.X (kernel 6.8). On JetPack 7.X, build the module from source using the scripts above.
 
 
 ---
 
 ## Release History
+
+### **August 2026**
+- Added **JetPack 7.X** (Jetson Linux 39.X, Ubuntu 24.04 Noble, kernel 6.8) support
+- Kernel source directory is now **auto-detected** (`kernel-jammy-src` vs `kernel-noble`), so JetPack 6.X continues to work unchanged
+- `edit_config_cli.sh` now selects the correct ncurses package for the running Ubuntu release
+- `get_kernel_sources.sh` extracts the unified GPU display driver source when the release provides it
+- Tested on **JetPack 7.2** (Jetson Linux 39.2) on **Jetson AGX Orin**
 
 ### **March 2025**
 - **Initial Release**

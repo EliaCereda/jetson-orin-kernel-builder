@@ -6,7 +6,7 @@ This script automates the process of **building the Linux kernel** for an **NVID
 ## Requirements and Dependencies
 To successfully run this script, ensure the following:
 - **Bash shell** (pre-installed on most Linux systems)
-- **Kernel source code** located in `/usr/src/kernel/kernel-jammy-src` or a user-specified directory
+- **Kernel source code** located under `/usr/src/kernel/` (`kernel-jammy-src` on JetPack 6.X, `kernel-noble` on JetPack 7.X) or a user-specified directory
 - **Required build tools** installed. Retrieving the source code user get_kernel_sources.sh will install libssl-dev:
   ```bash
   sudo apt-get install -y libssl-dev
@@ -49,7 +49,7 @@ To display the help message:
 3. **Verify Kernel Source Directory**  
    - The kernel source path can be overriden. The default kernel source path is:  
      ```
-     /usr/src/kernel/kernel-jammy-src
+     /usr/src/kernel/kernel-noble      # JetPack 7.X (kernel-jammy-src on JetPack 6.X)
      ```
    - If the directory does not exist, an error message is displayed, and the script exits.
 

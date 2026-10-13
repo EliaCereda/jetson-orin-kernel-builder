@@ -3,19 +3,20 @@
 # This script enables the use of 'make xconfig', a graphical interface for configuring 
 # Linux kernel options. It checks for required Qt5 libraries and, if missing, offers 
 # to install either qtbase5-dev or qtbase5-gles-dev based on user preference.
-# Once dependencies are met, it navigates to the specified kernel source directory 
-# (default: /usr/src/kernel/kernel-jammy-src) and launches 'make xconfig' with 
-# appropriate permissions.
+# Once dependencies are met, it navigates to the kernel source directory and launches
+# 'make xconfig' with appropriate permissions. When no directory is given, the source
+# tree is detected under /usr/src (kernel-jammy-src on JetPack 6.X, kernel-noble on
+# JetPack 7.X).
 #
 # Usage:
 #   ./edit_config_gui.sh [kernel_source_directory]
 #
 # Options:
-#   kernel_source_directory  (Optional) Path to the kernel source directory 
-#                            (default: /usr/src/kernel/kernel-jammy-src)
+#   kernel_source_directory  (Optional) Path to the kernel source directory
+#                            (default: auto-detected under /usr/src/kernel/)
 #
 # Example:
-#   ./edit_config_gui.sh                   # Use default kernel source directory
+#   ./edit_config_gui.sh                   # Auto-detect the kernel source directory
 #   ./edit_config_gui.sh /custom/kernel/src # Specify a custom kernel source path
 #
 # Notes:
@@ -26,6 +27,9 @@
 #
 # Copyright (c) 2016-25 JetsonHacks
 # MIT License
+
+# Shared helpers for locating the kernel source tree
+source "$(dirname "$(readlink -f "$0")")/kernel_paths.sh"
 
 # Function to check for Qt5 libraries
 check_qt_libraries() {
@@ -77,14 +81,24 @@ install_qt_libraries() {
     fi
 }
 
-# Default kernel source directory, override with command-line argument if provided
-KERNEL_SRC=${1:-/usr/src/kernel/kernel-jammy-src}
+# Kernel source directory: use the command-line argument if provided, otherwise
+# detect it under /usr/src (name varies by release)
+if [ -n "$1" ]; then
+    KERNEL_SRC="$1"
+elif ! KERNEL_SRC=$(resolve_kernel_src /usr/src); then
+    echo "Error: Cannot find kernel source under /usr/src/kernel/"
+    echo "Expected one of: ${KNOWN_KERNEL_SRC_DIRS[*]}"
+    echo "Pass the kernel source directory explicitly to override."
+    exit 1
+fi
 
 # Check if the kernel source directory exists and contains a Makefile
 if [ ! -d "$KERNEL_SRC" ] || [ ! -f "$KERNEL_SRC/Makefile" ]; then
     echo "Error: $KERNEL_SRC is not a valid kernel source directory (missing or no Makefile found)."
     exit 1
 fi
+
+echo "Kernel source path: $KERNEL_SRC"
 
 # Check for Qt libraries and prompt to install if missing
 if ! check_qt_libraries; then
